@@ -5,6 +5,7 @@
       :rows="livros"
       :columns="columns"
       row-key="name"
+      v-if="isLoading()"
     >
     <template v-slot:body-cell-action="props">
         <q-td :props="props">
@@ -21,7 +22,7 @@
 import { Livro } from 'components/models'
 import { onMounted, ref } from 'vue'
 import livroService from 'src/services/livroService'
-import { useQuasar } from 'quasar'
+import { Loading, QSpinnerGears, useQuasar } from 'quasar'
 import { useRouter } from 'vue-router'
 
 const $q = useQuasar()
@@ -32,14 +33,20 @@ const columns = [
 ]
 const router = useRouter()
 const livros = ref<Livro[]>([])
+const carregando = ref<boolean>()
 onMounted(() => {
-  getLivros()
+  setTimeout(() => {
+    getLivros()
+  }, 1500)
 })
 
 const getLivros = async () => {
   try {
     const data = await list()
-    livros.value = data
+    if (data.length > 0) {
+      carregando.value = true
+      livros.value = data
+    }
   } catch (error) {
     console.log('error: ', error)
   }
@@ -63,6 +70,19 @@ const apagar = async (id: number) => {
 
 const handleEditPost = (id: number) => {
   router.push({ name: 'editBook', params: { id } })
+}
+
+const isLoading = () => {
+  if (carregando.value === true) {
+    Loading.hide()
+    return true
+  } else {
+    Loading.show({
+      message: 'carregando...',
+      spinner: QSpinnerGears
+    })
+    return false
+  }
 }
 
 </script>

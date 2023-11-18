@@ -1,6 +1,7 @@
 <template>
   <q-input
     filled
+    type="textarea"
     v-model="dado"
     :label="props.label"
     hint="Name and surname"

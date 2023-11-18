@@ -1,78 +1,54 @@
 <template>
   <q-page padding>
+
       <q-form
         @submit="onSubmit"
-        class="q-gutter-x-md row"
-        :style="styles"
+        class="q-gutter-x-md row edit"
+        v-if="isLoading()"
       >
-      <input-camp
-        :label="nome"
-        v-model="form.nome"
-        :validate="validaTexto(form.nome, 'Nome tem que ser maior que 6 letras', 6)"
-      />
-      <input-camp
-        :label="anoPublicacao"
-        v-model="form.anoPublicacao"
-        :validate="year(form.anoPublicacao)"
-      />
-      <!-- :val="[val => validaName(val,'Nome tem que ser maior que 6 letras',6)]" -->
-        <!-- <q-input
-            filled
-            v-model="form.nome"
-            label="Nome do Livro*"
-            hint="Name and surname"
-            class="col-lg-6 col-xs-12"
-            maxlength="maxlengthNome"
-            lazy-rules
-            :rules="[ val => validaName(val,'Nome tem que ser maior que 6 letras', 6)]"
-          /> -->
-        <!-- <q-input
-            filled
-            v-model="form.anoPublicacao"
-            label="Ano de Publicação*"
-            hint="Ano é formado por 4 números"
-            class="col-lg-6 col-xs-12"
-            lazy-rules
-            :maxlength="4"
-            :rules="[ val => year(val)]"
-          />-->
-        <!-- <q-input
-            filled
-            v-model="form.autor"
-            label="Autor do Livro*"
-            hint="Name and surname"
-            class="col-lg-6 col-xs-12"
-            lazy-rules
-            :maxlength="15"
-            :rules="[ val => min(val) ]"
-          /> -->
-        <!-- <q-input
-            filled
-            type="textarea"
-            v-model="form.sinopse"
-            label="Sinopse*"
-            hint="Name and surname"
-            class="col-lg-6 col-xs-12"
-            lazy-rules
-            :rules="[ val => val && val.length > 0 || 'Please type something']"
-          /> -->
-          <div v-if="verifyChanged()" class="col-12 q-gutter-sm" :style="styles">
-            <q-btn label="Salvar" color="primary" class="float-right" icon="save" type="submit"/>
-            <q-btn label="Cancelar" color="white" class="float-right" text-color="primary" :to="{name: 'home'}"/>
-          </div>
+      <!-- <q-inner-loading :showing="carregar"/> -->
+        <input-camp
+          :label="nome"
+          v-model="form.nome"
+          :validate="validaTexto(form.nome, 'Nome tem que ser maior que 6 letras', 6)"
+        />
+        <input-camp
+          :label="anoPublicacao"
+          v-model="form.anoPublicacao"
+          :validate="year(form.anoPublicacao)"
+        />
+        <input-camp
+          :label="autor"
+          v-model="form.autor"
+          :validate="validaAutor(form.autor, 'Autor tem que ser maior que 4 letras', 4)"
+        />
+        <text-area-camp
+          :label="sinopse"
+          v-model="form.sinopse"
+          :validate="validaTextArea(form.sinopse,'Sinopse tem que ser maior que 15 letras', 15)"
+        />
+
+        <div v-if="verifyChanged()" class="q-gutter-x-md row">
+          <q-btn label="Salvar" color="primary" class="btn"  icon="save" type="submit"/>
+          <q-btn label="Cancelar" color="negative" class="btn"  :to="{name: 'home'}"/>
+        </div>
       </q-form>
+
   </q-page>
 </template>
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import livroService from 'src/services/livroService'
-import { useQuasar } from 'quasar'
+import { Loading, QSpinnerGears, useQuasar } from 'quasar'
 import { useRouter, useRoute } from 'vue-router'
 import InputCamp from 'src/components/InputCamp.vue'
+import textAreaCamp from 'src/components/textAreaCamp.vue'
 import { Livro } from 'src/model/book'
 const nome = ref<string>('Nome do Livro*')
+const autor = ref<string>('Nome do Livro*')
 const anoPublicacao = ref<string>('Ano da Publicação*')
+const sinopse = ref<string>('Sinopse*')
 
 const { notify } = useQuasar()
 const { update, findById } = livroService()
@@ -87,10 +63,16 @@ const { back } = useRouter()
 const { params } = useRoute()
 
 const change = ref<boolean>(false)
+const carregar = ref<boolean>(false)
 const nomeOriginal = ref<string>()
+const autorOriginal = ref<string>()
+const sinopseOriginal = ref<string>()
+
 onMounted(() => {
   if (params.id) {
-    getBook(params.id)
+    setTimeout(() => {
+      getBook(params.id)
+    }, 1500)
   }
 })
 
@@ -107,14 +89,33 @@ const onSubmit = async () => {
 const getBook = async (id: string) => {
   try {
     const resposta = await findById(id)
-    form.id = id
-    form.nome = resposta.nome
-    nomeOriginal.value = resposta.nome
-    form.anoPublicacao = resposta.anoPublicacao
-    form.autor = resposta.autor
-    form.sinopse = resposta.sinopse
+
+    if (resposta.nome !== '') {
+      carregar.value = true
+      form.id = id
+      form.nome = resposta.nome
+      nomeOriginal.value = resposta.nome
+      sinopseOriginal.value = resposta.sinopse
+      autorOriginal.value = resposta.autor
+      form.anoPublicacao = resposta.anoPublicacao
+      form.autor = resposta.autor
+      form.sinopse = resposta.sinopse
+    }
   } catch (error) {
     console.log(error)
+  }
+}
+
+const isLoading = () => {
+  if (carregar.value === true) {
+    Loading.hide()
+    return true
+  } else {
+    Loading.show({
+      message: 'carregando...',
+      spinner: QSpinnerGears
+    })
+    return false
   }
 }
 
@@ -122,6 +123,44 @@ const validaTexto = (str: string,
   message: string,
   min: number) : boolean | string => {
   if (nomeOriginal.value && str && nomeOriginal.value !== str) {
+    if (str.length <= min) {
+      change.value = false
+      return 'Está abaixo do minimo de letras'
+    } else {
+      change.value = true
+      return true
+    }
+  } else if (str.length === 0) {
+    change.value = false
+    return message
+  }
+
+  return true
+}
+
+const validaAutor = (str: string,
+  message: string,
+  min: number) : boolean | string => {
+  if (autorOriginal.value && str && autorOriginal.value !== str) {
+    if (str.length <= min) {
+      change.value = false
+      return 'Está abaixo do minimo de letras'
+    } else {
+      change.value = true
+      return true
+    }
+  } else if (str.length === 0) {
+    change.value = false
+    return message
+  }
+
+  return true
+}
+
+const validaTextArea = (str: string,
+  message: string,
+  min: number) : boolean | string => {
+  if (sinopseOriginal.value && str && sinopseOriginal.value !== str) {
     if (str.length <= min) {
       change.value = false
       return 'Está abaixo do minimo de letras'
@@ -149,12 +188,29 @@ const year = (val: string): boolean | string => {
 }
 
 const verifyChanged = (): boolean => {
-  console.log('verifica mudanças: ', change.value)
-
   return (change.value === true)
 }
-const styles = reactive({
-  'justify-content': 'center',
-  'align-text': 'center'
-})
+
 </script>
+<style lang="scss">
+  .edit {
+    display: flex;
+    justify-items: center;
+    justify-content: center;
+    margin-top: 33.5px;
+    margin-left: 380px;
+    width: 400px;
+    max-width: 100%;
+  }
+
+  .btn {
+    display: flex;
+    justify-items: center;
+    justify-content: center;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    margin-left: 15px;
+    width: 400px;
+    max-width: 100%;
+  }
+</style>

@@ -46,9 +46,13 @@ const getLivros = async () => {
     if (data.length > 0) {
       carregando.value = true
       livros.value = data
+    } else {
+      Loading.hide()
+      livros.value = []
     }
   } catch (error) {
-    console.log('error: ', error)
+    Loading.hide()
+    $q.notify({ message: 'Erro carregar os livros', icon: 'check', color: 'negative' })
   }
 }
 
@@ -64,7 +68,7 @@ const apagar = async (id: number) => {
       await getLivros()
     })
   } catch (error) {
-    console.log('error: ', error)
+    $q.notify({ message: 'Erro ao apagar o livro', icon: 'check', color: 'negative' })
   }
 }
 

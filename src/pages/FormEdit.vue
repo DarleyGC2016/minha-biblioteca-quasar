@@ -6,7 +6,6 @@
         class="q-gutter-x-md row edit"
         v-if="isLoading()"
       >
-      <!-- <q-inner-loading :showing="carregar"/> -->
         <input-camp
           :label="nome"
           v-model="form.nome"
@@ -45,14 +44,15 @@ import { useRouter, useRoute } from 'vue-router'
 import InputCamp from 'src/components/InputCamp.vue'
 import textAreaCamp from 'src/components/textAreaCamp.vue'
 import { Livro } from 'src/model/book'
+
 const nome = ref<string>('Nome do Livro*')
-const autor = ref<string>('Nome do Livro*')
+const autor = ref<string>('Autor*')
 const anoPublicacao = ref<string>('Ano da Publicação*')
 const sinopse = ref<string>('Sinopse*')
 
 const { notify } = useQuasar()
 const { update, findById } = livroService()
-const form = reactive<Livro>({
+let form = reactive<Livro>({
   id: '',
   nome: '',
   autor: '',
@@ -67,12 +67,22 @@ const carregar = ref<boolean>(false)
 const nomeOriginal = ref<string>()
 const autorOriginal = ref<string>()
 const sinopseOriginal = ref<string>()
+const $q = useQuasar()
+
+const formCampo = (id: string, resposta: Livro): Livro => {
+  form.id = id
+  form.nome = resposta.nome
+  form.anoPublicacao = resposta.anoPublicacao
+  form.autor = resposta.autor
+  form.sinopse = resposta.sinopse
+  return form
+}
 
 onMounted(() => {
   if (params.id) {
     setTimeout(() => {
       getBook(params.id)
-    }, 1500)
+    }, 1400)
   }
 })
 
@@ -82,7 +92,8 @@ const onSubmit = async () => {
     notify({ message: 'Livro salvo com sucesso', icon: 'check', color: 'positive' })
     back()
   } catch (error) {
-    console.error(error)
+    Loading.hide()
+    $q.notify({ message: 'Erro atualizar os dados do livro', icon: 'check', color: 'negative' })
   }
 }
 
@@ -92,14 +103,10 @@ const getBook = async (id: string) => {
 
     if (resposta.nome !== '') {
       carregar.value = true
-      form.id = id
-      form.nome = resposta.nome
       nomeOriginal.value = resposta.nome
       sinopseOriginal.value = resposta.sinopse
       autorOriginal.value = resposta.autor
-      form.anoPublicacao = resposta.anoPublicacao
-      form.autor = resposta.autor
-      form.sinopse = resposta.sinopse
+      form = formCampo(id, resposta)
     }
   } catch (error) {
     console.log(error)

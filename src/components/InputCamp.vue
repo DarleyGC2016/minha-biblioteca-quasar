@@ -14,5 +14,4 @@
 <script setup lang="ts">
 const props = defineProps(['dado', 'label', 'validate'])
 defineEmits(['update:dado'])
-
 </script>
